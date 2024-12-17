@@ -27,13 +27,31 @@ int main() {
         // Remove newline from fgets
         input[strcspn(input, "\n")] = '\0';
 
-        if (strcmp(input, "exit 0") == 0) {
-            exit(0);
+        if (strstarts(input, "exit"))
+        {
+            char *token = strtok(input, " ");
+            token = strtok(NULL, "");
+
+            if (token == NULL) // no exit code was provided
+                exit(0);
+
+            // strtol returns a "long" but it gets cast to int
+            char *endptr;
+            int exit_status = strtol(token, &endptr, 10);
+
+            exit(exit_status);
         }
 
         if (strstarts(input, "echo")) {
             char *token = strtok(input, " ");
             token = strtok(NULL, "");
+
+            if (token == NULL) // no other arguments were provided
+            {
+                printf("\n");
+                continue;
+            }
+
             printf("%s\n", token);
             continue;
         }
