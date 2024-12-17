@@ -3,20 +3,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <sys/param.h>
 
 /**
 * strstarts - does @str start with @prefix?
 * @str: string to examine
 * @prefix: prefix to look for.
 */
-bool strstarts(const char *str, const char *prefix)
-{
-     return strncmp(str, prefix, strlen(prefix)) == 0;
-}
+bool strstarts(const char *str, const char *prefix);
+
+/**
+ * Returns the full path of @cmd if found at one of the path locations.
+ * @cmd: string to look for inside the directories defined by PATH env.
+ */
+char *find_in_path(const char* cmd);
 
 int main() {
 
-LOOP: while ( true )
+    while ( true )
     {
         printf("$ ");
         fflush(stdout);
@@ -75,38 +80,13 @@ LOOP: while ( true )
             }
 
             // Try to find in PATH
-            char *path_env = getenv("PATH");
-            char *pathenv = strndup(path_env, strlen(path_env));
+            char *path = find_in_path(token);
 
-            pathenv = strtok(pathenv, "=");
-            pathenv = strtok(pathenv, ":");
+            if ( path == NULL )
+                printf("%s: not found\n", token);
+            else
+                printf("%s is %s/%s\n", token, path, token);
 
-            while ( (pathenv = strtok(NULL, ":")) )
-            {
-                if ( strncmp(pathenv, "/usr/bin", strlen("/usr/bin")) == 0 )
-                    continue;
-
-                struct dirent *directory;
-                DIR *dir = opendir( pathenv );
-
-                if ( dir == NULL )
-                    continue;
-                    /*fprintf(stderr, "Unable to open directory: %s\n", pathenv);*/
-
-                while ( (directory = readdir(dir) ) )
-                {
-                    if (strncmp(directory->d_name, token, strlen(token)) == 0)
-                    {
-                        printf("%s is %s/%s\n", token, pathenv, token);
-                        closedir(dir);
-                        goto LOOP;
-                    }
-                }
-
-                closedir(dir);
-            }
-
-            printf("%s: not found\n", token);
             continue;
         }
 
@@ -114,4 +94,52 @@ LOOP: while ( true )
     }
 
     return 0;
+}
+
+bool strstarts(const char *str, const char *prefix)
+{
+     return strncmp(str, prefix, strlen(prefix)) == 0;
+}
+
+bool process_command(const char command[], char input[])
+{
+    if ( strncmp(input, command, strlen(command)) )
+    {
+        char *token = strtok(input, " ");
+        token = strtok(NULL, "");
+        return true;
+    }
+
+    return false;
+}
+
+char *find_in_path(const char* cmd)
+{
+    char *path_var = getenv("PATH");
+    char *path_env = strndup(path_var, strlen(path_var));
+
+    path_env = strtok(path_env, "=");
+    path_env = strtok(path_env, ":");
+
+    struct dirent *directory;
+
+    while ( (path_env = strtok(NULL, ":")) )
+    {
+        DIR *dir = opendir( path_env );
+
+        if (dir == NULL) continue; // can't open it
+
+        while ( (directory = readdir(dir)) )
+        {
+            if (strncmp(directory->d_name, cmd, strlen(cmd)) == 0)
+            {
+                closedir(dir);
+                return path_env;
+            }
+        }
+
+        closedir(dir);
+    }
+
+    return NULL;
 }
