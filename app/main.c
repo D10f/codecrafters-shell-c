@@ -38,7 +38,24 @@ int main() {
             continue;
         }
 
-        printf("%s: command not found\n", input);
+        if (strstarts(input, "type")) {
+            char *token = strtok(input, " ");
+            token = strtok(NULL, " "); // capture only until the next space
+            /*printf("token: %s, %d\n", token, strncmp(token, "testing", strlen(token) - 1 ));*/
+
+            if (strncmp(token, "echo", strlen(token) - 1) == 0 ||
+                strncmp(token, "exit", strlen(token) - 1) == 0 ||
+                strncmp(token, "type", strlen(token) - 1) == 0)
+            {
+                printf("%s is a shell builtin\n", token);
+                continue;
+            }
+
+            printf("%s: not found\n", token);
+            continue;
+        }
+
+        printf("%s: not found\n", input);
     }
 
     return 0;
