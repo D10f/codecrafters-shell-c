@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
 
 /**
 * strstarts - does @str start with @prefix?
@@ -15,7 +16,7 @@ bool strstarts(const char *str, const char *prefix)
 
 int main() {
 
-    while ( true )
+LOOP: while ( true )
     {
         printf("$ ");
         fflush(stdout);
@@ -42,7 +43,8 @@ int main() {
             exit(exit_status);
         }
 
-        if (strstarts(input, "echo")) {
+        if (strstarts(input, "echo"))
+        {
             char *token = strtok(input, " ");
             token = strtok(NULL, "");
 
@@ -56,17 +58,52 @@ int main() {
             continue;
         }
 
-        if (strstarts(input, "type")) {
+        if (strstarts(input, "type"))
+        {
             char *token = strtok(input, " ");
             token = strtok(NULL, " "); // capture only until the next space
-            /*printf("token: %s, %d\n", token, strncmp(token, "testing", strlen(token) - 1 ));*/
 
-            if (strncmp(token, "echo", strlen(token) - 1) == 0 ||
-                strncmp(token, "exit", strlen(token) - 1) == 0 ||
-                strncmp(token, "type", strlen(token) - 1) == 0)
+            if (token == NULL) // no other arguments were provided
+                continue;
+
+            if (strncmp(token, "echo", strlen(token)) == 0 ||
+                strncmp(token, "exit", strlen(token)) == 0 ||
+                strncmp(token, "type", strlen(token)) == 0)
             {
                 printf("%s is a shell builtin\n", token);
                 continue;
+            }
+
+            // Try to find in PATH
+            char *path_env = getenv("PATH");
+            char *pathenv = strndup(path_env, strlen(path_env));
+
+            pathenv = strtok(pathenv, "=");
+            pathenv = strtok(pathenv, ":");
+
+            while ( (pathenv = strtok(NULL, ":")) )
+            {
+                if ( strncmp(pathenv, "/usr/bin", strlen("/usr/bin")) == 0 )
+                    continue;
+
+                struct dirent *directory;
+                DIR *dir = opendir( pathenv );
+
+                if ( dir == NULL )
+                    continue;
+                    /*fprintf(stderr, "Unable to open directory: %s\n", pathenv);*/
+
+                while ( (directory = readdir(dir) ) )
+                {
+                    if (strncmp(directory->d_name, token, strlen(token)) == 0)
+                    {
+                        printf("%s is %s/%s\n", token, pathenv, token);
+                        closedir(dir);
+                        goto LOOP;
+                    }
+                }
+
+                closedir(dir);
             }
 
             printf("%s: not found\n", token);
