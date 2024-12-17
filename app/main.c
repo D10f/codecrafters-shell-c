@@ -99,18 +99,6 @@ bool strstarts(const char *str, const char *prefix)
      return strncmp(str, prefix, strlen(prefix)) == 0;
 }
 
-bool process_command(const char command[], char input[])
-{
-    if ( strncmp(input, command, strlen(command)) )
-    {
-        char *token = strtok(input, " ");
-        token = strtok(NULL, "");
-        return true;
-    }
-
-    return false;
-}
-
 char *find_in_path(const char* cmd)
 {
     char *path_var = getenv("PATH");
