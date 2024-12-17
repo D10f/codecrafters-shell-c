@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 int main() {
@@ -15,6 +16,11 @@ int main() {
 
         // Remove newline from fgets
         input[strcspn(input, "\n")] = '\0';
+
+        if (strcmp(input, "exit 0")) {
+            exit(0);
+        }
+
         printf("%s: command not found\n", input);
     }
 
