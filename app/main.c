@@ -17,7 +17,7 @@ int main() {
         // Remove newline from fgets
         input[strcspn(input, "\n")] = '\0';
 
-        if (strcmp(input, "exit 0")) {
+        if (strcmp(input, "exit 0") == 0) {
             exit(0);
         }
 
