@@ -12,10 +12,18 @@
 bool strstarts(const char *str, const char *prefix);
 
 /**
- * Returns the full path of @cmd if found at one of the path locations.
- * @cmd: string to look for inside the directories defined by PATH env.
+ * Searches for an executable by the name of @cmd inside the directories
+ * specified by the PATH environment variable. Returns the absolute path
+ * of the executable found.
+ * @cmd: string representing the command to find.
  */
-char *find_in_path(const char* cmd);
+char *find_command(const char* cmd);
+
+/**
+ * Reads user input from stdin and breaks it down into the command and
+ * the rest of the arguments.
+ */
+int process_input(char* buffer, char **arg_buffer);
 
 /**
  * Prints an error message to stderr indicating that the command @cmd
@@ -31,92 +39,62 @@ int main()
         printf("$ ");
         fflush(stdout);
 
-        // Wait for user input
-        char input[100];
-        fgets(input, 100, stdin);
+        char cmd_buffer[1024];
+        char *arg_buffer = NULL;
 
-        // Remove newline from fgets
-        input[strcspn(input, "\n")] = '\0';
+        process_input(cmd_buffer, &arg_buffer);
 
-        if (strstarts(input, "exit"))
+        if ( strncmp(cmd_buffer, "exit", 4) == 0 )
         {
-            char *token = strtok(input, " ");
-            token = strtok(NULL, "");
-
-            if (token == NULL) // no exit code was provided
+            if ( arg_buffer == NULL )
+            {
+                printf("%s\n", "Exiting...");
                 exit(0);
+            }
 
             // strtol returns a "long" but it gets cast to int
             char *endptr;
-            int exit_status = strtol(token, &endptr, 10);
-
+            int exit_status = strtol(arg_buffer, &endptr, 10);
             exit(exit_status);
         }
 
-        if (strstarts(input, "echo"))
+        if ( strncmp(cmd_buffer, "echo", 4) == 0 )
         {
-            char *token = strtok(input, " ");
-            token = strtok(NULL, "");
-
-            if (token == NULL) // no other arguments were provided
-            {
+            if ( arg_buffer == NULL )
                 printf("\n");
-                continue;
-            }
+            else
+                printf("%s\n", arg_buffer);
 
-            printf("%s\n", token);
             continue;
         }
 
-        if (strstarts(input, "type"))
+        if ( strncmp(cmd_buffer, "type", 4) == 0 )
         {
-            char *token = strtok(input, " ");
-            token = strtok(NULL, " "); // capture only until the next space
-
-            if (token == NULL) // no other arguments were provided
+            if ( arg_buffer == NULL )
                 continue;
 
-            if (strncmp(token, "echo", strlen(token)) == 0 ||
-                strncmp(token, "exit", strlen(token)) == 0 ||
-                strncmp(token, "type", strlen(token)) == 0)
+            char *token = strtok(arg_buffer, " ");
+
+            if ( token == NULL )
+                continue;
+
+            if (strncmp(token, "echo", 4) == 0 ||
+                strncmp(token, "exit", 4) == 0 ||
+                strncmp(token, "type", 4) == 0)
             {
                 printf("%s is a shell builtin\n", token);
                 continue;
             }
 
-            // Try to find in PATH
-            char *path = find_in_path(token);
+            char *filepath = find_command(token);
 
-            if ( path == NULL )
+            if ( filepath == NULL )
                 command_not_found_err(token);
             else
-                printf("%s is %s/%s\n", token, path, token);
+                printf("%s is %s/%s\n", token, filepath, token);
 
             continue;
         }
-
-        /*char *path_env = strndup(path_var, strlen(path_var));*/
-        char *command = strtok(strndup(input, strlen(input)), " ");
-        char *path = find_in_path(command);
-
-        if ( command == NULL)
-        {
-            command_not_found_err(command);
-            continue;
-        }
-
-        char *args = strtok(NULL, "");
-
-        /*if (command == NULL)*/
-        /*    exit(0);*/
-        /**/
-        /**/
-        /*if ( path == NULL )*/
-        /*    command_not_found_err(token);*/
-        /*else*/
-        /*    printf("%s is %s/%s\n", token, path, token);*/
-
-        /*command_not_found_err(input);*/
     }
 
     return 0;
@@ -133,38 +111,59 @@ int command_not_found_err(const char* cmd)
     return 127;
 }
 
-char *find_in_path(const char* cmd)
+char *find_command(const char* cmd)
 {
-    char *path_var = getenv("PATH");
-    char *path_env = strndup(path_var, strlen(path_var));
-
+    char *paths = getenv("PATH");
+    char *path_env = strndup(paths, strlen(paths));
     path_env = strtok(path_env, ":");
 
-    if (strncmp(cmd, "my_exe", strlen(cmd)) == 0) {
-        return path_env;
-    }
+    struct dirent *dirent;
 
-    struct dirent *directory;
+    do {
+        DIR *directory = opendir( path_env );
 
-    while ( (path_env = strtok(NULL, ":")) )
-    {
-        if (strncmp(path_env, "/usr/bin", strlen(path_env)) == 0) continue;
+        if ( directory == NULL )
+            continue;
 
-        DIR *dir = opendir( path_env );
-
-        if (dir == NULL) continue; // can't open it
-
-        while ( (directory = readdir(dir)) )
+        while ( (dirent = readdir(directory) ))
         {
-            if (strncmp(directory->d_name, cmd, strlen(cmd)) == 0)
+            if ( strncmp(dirent->d_name, cmd, strlen(cmd)) == 0 )
             {
-                closedir(dir);
+                closedir(directory);
                 return path_env;
             }
         }
 
-        closedir(dir);
-    }
+        closedir(directory);
+
+    } while ( (path_env = strtok(NULL, ":")) );
 
     return NULL;
+}
+
+int process_input(char* buffer, char **arg_buffer)
+{
+    fgets(buffer, 1024, stdin);
+    buffer[strcspn(buffer, "\n")] = '\0';
+
+    if ( buffer == NULL )
+        return -1;
+
+    char *c = buffer;
+
+    // Read until the end of the user input
+    while ( *(++c) != '\0' )
+    {
+        // Upon finding the first space, set the null character at that
+        // position, and point the argument buffer one position further.
+        // Otherwise, there are simply no arguments provided.
+        if ( *c == ' ' )
+        {
+            *c = '\0';
+            *arg_buffer = &*(c + 1);
+            break;
+        }
+    }
+
+    return 0;
 }
