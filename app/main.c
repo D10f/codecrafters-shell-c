@@ -89,12 +89,14 @@ int main()
             char *filepath = find_command(token);
 
             if ( filepath == NULL )
-                command_not_found_err(token);
+                fprintf(stderr, "%s: not found\n", token);
             else
                 printf("%s is %s/%s\n", token, filepath, token);
 
             continue;
         }
+
+        fprintf(stderr, "%s: command not found\n", cmd_buffer);
     }
 
     return 0;
@@ -120,6 +122,9 @@ char *find_command(const char* cmd)
     struct dirent *dirent;
 
     do {
+        if ( strncmp(path_env, "/usr/bin", strlen("/usr/bin")) == 0 )
+            continue;
+
         DIR *directory = opendir( path_env );
 
         if ( directory == NULL )
