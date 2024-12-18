@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 /**
 * strstarts - does @str start with @prefix?
@@ -18,6 +20,11 @@ bool strstarts(const char *str, const char *prefix);
  * @cmd: string representing the command to find.
  */
 char *find_command(const char* cmd);
+
+/**
+ * @cmd: string representing the command to run.
+ */
+void run_command(const char* cmd_buffer, char *args_buffer);
 
 /**
  * Reads user input from stdin and breaks it down into the command and
@@ -96,7 +103,16 @@ int main()
             continue;
         }
 
-        fprintf(stderr, "%s: command not found\n", cmd_buffer);
+        char *filepath = find_command(cmd_buffer);
+
+        if ( filepath == NULL )
+            fprintf(stderr, "%s: command not found\n", cmd_buffer);
+        else
+        {
+            char cmd_path[1024];
+            sprintf(cmd_path, "%s/%s", filepath, cmd_buffer);
+            run_command(cmd_path, arg_buffer);
+        }
     }
 
     return 0;
@@ -171,4 +187,40 @@ int process_input(char* buffer, char **arg_buffer)
     }
 
     return 0;
+}
+
+void run_command(const char* cmd_buffer, char *args_buffer)
+{
+    int argc = 1;
+    char *argv[10] = {
+        strndup(cmd_buffer, strlen(cmd_buffer)),
+        NULL
+    };
+
+    if ( args_buffer != NULL )
+    {
+        args_buffer = strtok(args_buffer, " ");
+
+        do {
+            argv[argc++] = args_buffer;
+        } while ( (args_buffer = strtok(NULL, " ")) );
+
+        argv[argc] = NULL;
+    }
+
+    pid_t pid = fork();
+
+    if ( pid == 0 )
+    {
+        execv(cmd_buffer, argv);
+        perror("execv");
+        exit(1);
+    }
+    else if ( pid < 0 )
+        perror("fork");
+    else
+    {
+        int status;
+        waitpid( pid, &status, 0 );
+    }
 }
