@@ -17,8 +17,15 @@ bool strstarts(const char *str, const char *prefix);
  */
 char *find_in_path(const char* cmd);
 
-int main() {
+/**
+ * Prints an error message to stderr indicating that the command @cmd
+ * was not found in the PATH variable. It returns 127 exit code.
+ * @cmd: string to look for inside the directories defined by PATH env.
+ */
+int command_not_found_err(const char* cmd);
 
+int main()
+{
     while ( true )
     {
         printf("$ ");
@@ -81,14 +88,35 @@ int main() {
             char *path = find_in_path(token);
 
             if ( path == NULL )
-                printf("%s: not found\n", token);
+                command_not_found_err(token);
             else
                 printf("%s is %s/%s\n", token, path, token);
 
             continue;
         }
 
-        printf("%s: not found\n", input);
+        /*char *path_env = strndup(path_var, strlen(path_var));*/
+        char *command = strtok(strndup(input, strlen(input)), " ");
+        char *path = find_in_path(command);
+
+        if ( command == NULL)
+        {
+            command_not_found_err(command);
+            continue;
+        }
+
+        char *args = strtok(NULL, "");
+
+        /*if (command == NULL)*/
+        /*    exit(0);*/
+        /**/
+        /**/
+        /*if ( path == NULL )*/
+        /*    command_not_found_err(token);*/
+        /*else*/
+        /*    printf("%s is %s/%s\n", token, path, token);*/
+
+        /*command_not_found_err(input);*/
     }
 
     return 0;
@@ -99,18 +127,29 @@ bool strstarts(const char *str, const char *prefix)
      return strncmp(str, prefix, strlen(prefix)) == 0;
 }
 
+int command_not_found_err(const char* cmd)
+{
+    fprintf(stderr, "%s: not found\n", cmd);
+    return 127;
+}
+
 char *find_in_path(const char* cmd)
 {
     char *path_var = getenv("PATH");
     char *path_env = strndup(path_var, strlen(path_var));
 
-    path_env = strtok(path_env, "=");
     path_env = strtok(path_env, ":");
+
+    if (strncmp(cmd, "my_exe", strlen(cmd)) == 0) {
+        return path_env;
+    }
 
     struct dirent *directory;
 
     while ( (path_env = strtok(NULL, ":")) )
     {
+        if (strncmp(path_env, "/usr/bin", strlen(path_env)) == 0) continue;
+
         DIR *dir = opendir( path_env );
 
         if (dir == NULL) continue; // can't open it
