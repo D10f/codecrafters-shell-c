@@ -1,3 +1,4 @@
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -109,7 +110,7 @@ int main()
             fprintf(stderr, "%s: command not found\n", cmd_buffer);
         else
         {
-            char cmd_path[1024];
+            char cmd_path[PATH_MAX];
             sprintf(cmd_path, "%s/%s", filepath, cmd_buffer);
             run_command(cmd_path, arg_buffer);
         }
@@ -138,9 +139,6 @@ char *find_command(const char* cmd)
     struct dirent *dirent;
 
     do {
-        if ( strncmp(path_env, "/usr/bin", strlen("/usr/bin")) == 0 )
-            continue;
-
         DIR *directory = opendir( path_env );
 
         if ( directory == NULL )
