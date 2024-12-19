@@ -24,7 +24,7 @@ char *find_command(const char* cmd);
 /**
  * @cmd: string representing the command to run.
  */
-void run_command(const char* cmd_buffer, char *args_buffer);
+void run_command(char* cmd_buffer, char *args_buffer);
 
 /**
  * Reads user input from stdin and breaks it down into the command and
@@ -189,11 +189,11 @@ int process_input(char* buffer, char **arg_buffer)
     return 0;
 }
 
-void run_command(const char* cmd_buffer, char *args_buffer)
+void run_command(char* cmd_buffer, char *args_buffer)
 {
     int argc = 1;
     char *argv[10] = {
-        strndup(cmd_buffer, strlen(cmd_buffer)),
+        cmd_buffer,
         NULL
     };
 
