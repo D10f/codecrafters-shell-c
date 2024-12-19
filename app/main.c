@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -39,6 +40,8 @@ int process_input(char* buffer, char **arg_buffer);
  */
 int command_not_found_err(const char* cmd);
 
+void parse_input(char *buffer, char *argv[]);
+
 int main()
 {
     while ( true )
@@ -48,6 +51,26 @@ int main()
 
         char cmd_buffer[1024];
         char *arg_buffer = NULL;
+        char *argv[10];
+
+        fgets(cmd_buffer, 1024, stdin);
+        cmd_buffer[strcspn(cmd_buffer, "\n")] = '\0';
+
+        parse_input(cmd_buffer, argv);
+
+        for ( int i = 0; i < 10; i++ )
+        {
+            if ( argv[i] == NULL )
+            {
+                printf("%d\n", i);
+                break;
+            }
+
+            printf("%s\n", argv[i]);
+            free(argv[i]);
+        }
+
+        continue;
 
         process_input(cmd_buffer, &arg_buffer);
 
@@ -160,6 +183,58 @@ char *find_command(const char* cmd)
     } while ( (path_env = strtok(NULL, ":")) );
 
     return NULL;
+}
+
+void parse_input(char *buffer, char *argv[])
+{
+    if ( buffer == NULL )
+        return;
+
+    char *curr_ptr = buffer;
+    char *prev_ptr = buffer;
+    int argc = 0;
+
+    while ( *(curr_ptr++) != '\0' )
+    {
+        if ( isspace(*curr_ptr) )
+        {
+            *curr_ptr = '\0';
+
+            int new_buffer_size = (curr_ptr - prev_ptr) + 1;
+            argv[argc] = malloc(new_buffer_size);
+            strncpy(argv[argc], prev_ptr, new_buffer_size);
+            argc++;
+
+            // Consume any remaning whitespace
+            while ( isspace(*(++curr_ptr)) );
+
+            prev_ptr = curr_ptr;
+            continue;
+        }
+
+        if ( *curr_ptr == '\'' )
+        {
+            prev_ptr++;
+
+            // Consume all characters until the next quote is found
+            while ( *(++curr_ptr) != '\'' && *curr_ptr != '\0' );
+
+            *curr_ptr = ' ';
+            /*int new_buffer_size = (curr_ptr - prev_ptr) + 1;*/
+            /*argv[argc] = malloc(new_buffer_size);*/
+            /*strncpy(argv[argc], prev_ptr, new_buffer_size);*/
+            /*argc++;*/
+
+            continue;
+        }
+    }
+
+    int new_buffer_size = (curr_ptr - prev_ptr) + 1;
+    argv[argc] = malloc(new_buffer_size);
+    strncpy(argv[argc], prev_ptr, new_buffer_size);
+    argc++;
+
+    argv[argc] = NULL;
 }
 
 int process_input(char* buffer, char **arg_buffer)
