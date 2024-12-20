@@ -223,6 +223,28 @@ void parse_input(char *buffer, char *argv[])
             prev_ptr = curr_ptr + 1;
 
             while ( (*(++curr_ptr)) != '\'' && *curr_ptr != '\0' );
+                /*if ( *curr_ptr == '\\' && *( curr_ptr + 1 ) == '\'' )*/
+                /*{*/
+                /*    curr_ptr++;*/
+                /*    continue;*/
+                /*}*/
+
+            *curr_ptr = '\0';
+
+            int new_buffer_size = (curr_ptr - prev_ptr) + 1;
+            argv[argc] = malloc(new_buffer_size);
+            strncpy(argv[argc], prev_ptr, new_buffer_size);
+            argc++;
+
+            prev_ptr = ++curr_ptr;
+            continue;
+        }
+
+        if ( *curr_ptr == '"' )
+        {
+            prev_ptr = curr_ptr + 1;
+
+            while ( (*(++curr_ptr)) != '"' && *curr_ptr != '\0' );
 
             *curr_ptr = '\0';
 
