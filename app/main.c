@@ -187,9 +187,8 @@ void parse_input(char *buffer, char *argv[])
     if ( buffer == NULL )
         return;
 
-    char *buffer_dup = strndup(buffer, strlen(buffer));
-    char *curr_ptr = buffer_dup;
-    char *prev_ptr = buffer_dup;
+    char *curr_ptr = buffer;
+    char *prev_ptr = buffer;
     int argc = 0;
 
     while ( *curr_ptr != '\0' )
@@ -223,11 +222,6 @@ void parse_input(char *buffer, char *argv[])
             prev_ptr = curr_ptr + 1;
 
             while ( (*(++curr_ptr)) != '\'' && *curr_ptr != '\0' );
-                /*if ( *curr_ptr == '\\' && *( curr_ptr + 1 ) == '\'' )*/
-                /*{*/
-                /*    curr_ptr++;*/
-                /*    continue;*/
-                /*}*/
 
             *curr_ptr = '\0';
 
@@ -249,11 +243,42 @@ void parse_input(char *buffer, char *argv[])
             *curr_ptr = '\0';
 
             int new_buffer_size = (curr_ptr - prev_ptr) + 1;
-            argv[argc] = malloc(new_buffer_size);
-            strncpy(argv[argc], prev_ptr, new_buffer_size);
-            argc++;
+        argv[argc] = malloc(new_buffer_size);
+        strncpy(argv[argc], prev_ptr, new_buffer_size);
+        argc++;
 
-            prev_ptr = ++curr_ptr;
+        prev_ptr = ++curr_ptr;
+        continue;
+    }
+
+    if ( *curr_ptr == '\\' )
+    {
+        *curr_ptr = '\0';
+
+        int new_buffer_size = (curr_ptr - prev_ptr) + 1;
+            argv[argc] = malloc(256);
+            strncpy(argv[argc], prev_ptr, new_buffer_size);
+
+            int i = 0;
+            char tmp[256];
+            tmp[i++] = *(++curr_ptr);
+
+            while ( *(++curr_ptr) == '\\' )
+                tmp[i++] = *(++curr_ptr);
+
+            while ( ! isspace(*curr_ptr) && *curr_ptr != '\0' )
+            {
+                if ( *curr_ptr != '\\' )
+                    tmp[i++] = *curr_ptr;
+
+                curr_ptr++;
+            }
+
+            /*if ( isspace(*curr_ptr) )*/
+            /*    strncat(argv[argc++], tmp, i);*/
+            strncat(argv[argc++], tmp, i);
+
+            prev_ptr = curr_ptr;
             continue;
         }
 
