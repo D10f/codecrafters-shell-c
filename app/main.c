@@ -25,7 +25,8 @@ char *find_command(const char* cmd);
 /**
  * @cmd: string representing the command to run.
  */
-void run_command(char* cmd_buffer, char *args_buffer);
+/*void run_command(char* cmd_buffer, char *args_buffer);*/
+void run_command(char *argv[]);
 
 /**
  * Reads user input from stdin and breaks it down into the command and
@@ -52,6 +53,7 @@ int main()
         char cmd_buffer[1024];
         char *arg_buffer = NULL;
         char *argv[10];
+        int argc = 0;
 
         fgets(cmd_buffer, 1024, stdin);
         cmd_buffer[strcspn(cmd_buffer, "\n")] = '\0';
@@ -61,22 +63,17 @@ int main()
         for ( int i = 0; i < 10; i++ )
         {
             if ( argv[i] == NULL )
-            {
-                printf("%d\n", i);
                 break;
-            }
-
-            printf("%s\n", argv[i]);
-            free(argv[i]);
+            argc++;
         }
 
-        continue;
+        /*continue;*/
+        /**/
+        /*process_input(cmd_buffer, &arg_buffer);*/
 
-        process_input(cmd_buffer, &arg_buffer);
-
-        if ( strncmp(cmd_buffer, "exit", 4) == 0 )
+        if ( strncmp(argv[0], "exit", 4) == 0 )
         {
-            if ( arg_buffer == NULL )
+            if ( argv[1] == NULL )
             {
                 printf("%s\n", "Exiting...");
                 exit(0);
@@ -84,57 +81,57 @@ int main()
 
             // strtol returns a "long" but it gets cast to int
             char *endptr;
-            int exit_status = strtol(arg_buffer, &endptr, 10);
+            int exit_status = strtol(argv[1], &endptr, 10);
             exit(exit_status);
         }
 
-        if ( strncmp(cmd_buffer, "echo", 4) == 0 )
+        if ( strncmp(argv[0], "echo", 4) == 0 )
         {
-            if ( arg_buffer == NULL )
-                printf("\n");
-            else
-                printf("%s\n", arg_buffer);
+            for (int i = 1; i < argc; i++)
+                printf("%s ", argv[i]);
 
+            printf("\n");
             continue;
         }
 
-        if ( strncmp(cmd_buffer, "type", 4) == 0 )
+        if ( strncmp(argv[0], "type", 4) == 0 )
         {
-            if ( arg_buffer == NULL )
+            if ( argv[1] == NULL )
                 continue;
 
-            char *token = strtok(arg_buffer, " ");
+            /*char *token = strtok(arg_buffer, " ");*/
+            /**/
+            /*if ( token == NULL )*/
+            /*    continue;*/
 
-            if ( token == NULL )
-                continue;
-
-            if (strncmp(token, "echo", 4) == 0 ||
-                strncmp(token, "exit", 4) == 0 ||
-                strncmp(token, "type", 4) == 0)
+            if (strncmp(argv[1], "echo", 4) == 0 ||
+                strncmp(argv[1], "exit", 4) == 0 ||
+                strncmp(argv[1], "type", 4) == 0)
             {
-                printf("%s is a shell builtin\n", token);
+                printf("%s is a shell builtin\n", argv[1]);
                 continue;
             }
 
-            char *filepath = find_command(token);
+            char *filepath = find_command(argv[1]);
 
             if ( filepath == NULL )
-                fprintf(stderr, "%s: not found\n", token);
+                fprintf(stderr, "%s: not found\n", argv[1]);
             else
-                printf("%s is %s/%s\n", token, filepath, token);
+                printf("%s is %s/%s\n", argv[1], filepath, argv[1]);
 
             continue;
         }
 
-        char *filepath = find_command(cmd_buffer);
+        char *filepath = find_command(argv[0]);
 
         if ( filepath == NULL )
-            fprintf(stderr, "%s: command not found\n", cmd_buffer);
+            fprintf(stderr, "%s: command not found\n", argv[0]);
         else
         {
             char cmd_path[1024];
-            sprintf(cmd_path, "%s/%s", filepath, cmd_buffer);
-            run_command(cmd_path, arg_buffer);
+            sprintf(cmd_path, "%s/%s", filepath, argv[0]);
+            argv[0] = cmd_path;
+            run_command(argv);
         }
     }
 
@@ -190,14 +187,23 @@ void parse_input(char *buffer, char *argv[])
     if ( buffer == NULL )
         return;
 
-    char *curr_ptr = buffer;
-    char *prev_ptr = buffer;
+    char *buffer_dup = strndup(buffer, strlen(buffer));
+    char *curr_ptr = buffer_dup;
+    char *prev_ptr = buffer_dup;
     int argc = 0;
 
-    while ( *(curr_ptr++) != '\0' )
+    while ( *curr_ptr != '\0' )
     {
         if ( isspace(*curr_ptr) )
         {
+            // Trim leading spaces
+            if ( isspace(*prev_ptr) )
+            {
+                while ( isspace(*(++curr_ptr)) );
+                prev_ptr = curr_ptr;
+                continue;
+            }
+
             *curr_ptr = '\0';
 
             int new_buffer_size = (curr_ptr - prev_ptr) + 1;
@@ -214,25 +220,32 @@ void parse_input(char *buffer, char *argv[])
 
         if ( *curr_ptr == '\'' )
         {
-            prev_ptr++;
+            prev_ptr = curr_ptr + 1;
 
-            // Consume all characters until the next quote is found
-            while ( *(++curr_ptr) != '\'' && *curr_ptr != '\0' );
+            while ( (*(++curr_ptr)) != '\'' && *curr_ptr != '\0' );
 
-            *curr_ptr = ' ';
-            /*int new_buffer_size = (curr_ptr - prev_ptr) + 1;*/
-            /*argv[argc] = malloc(new_buffer_size);*/
-            /*strncpy(argv[argc], prev_ptr, new_buffer_size);*/
-            /*argc++;*/
+            *curr_ptr = '\0';
 
+            int new_buffer_size = (curr_ptr - prev_ptr) + 1;
+            argv[argc] = malloc(new_buffer_size);
+            strncpy(argv[argc], prev_ptr, new_buffer_size);
+            argc++;
+
+            prev_ptr = ++curr_ptr;
             continue;
         }
+
+        curr_ptr++;
     }
 
-    int new_buffer_size = (curr_ptr - prev_ptr) + 1;
-    argv[argc] = malloc(new_buffer_size);
-    strncpy(argv[argc], prev_ptr, new_buffer_size);
-    argc++;
+
+    if ( ! isspace(*prev_ptr) && *prev_ptr != '\0' )
+    {
+        int new_buffer_size = (curr_ptr - prev_ptr) + 1;
+        argv[argc] = malloc(new_buffer_size);
+        strncpy(argv[argc], prev_ptr, new_buffer_size);
+        argc++;
+    }
 
     argv[argc] = NULL;
 }
@@ -264,30 +277,13 @@ int process_input(char* buffer, char **arg_buffer)
     return 0;
 }
 
-void run_command(char* cmd_buffer, char *args_buffer)
+void run_command(char *argv[])
 {
-    int argc = 1;
-    char *argv[10] = {
-        cmd_buffer,
-        NULL
-    };
-
-    if ( args_buffer != NULL )
-    {
-        args_buffer = strtok(args_buffer, " ");
-
-        do {
-            argv[argc++] = args_buffer;
-        } while ( (args_buffer = strtok(NULL, " ")) );
-
-        argv[argc] = NULL;
-    }
-
     pid_t pid = fork();
 
     if ( pid == 0 )
     {
-        execv(cmd_buffer, argv);
+        execv(argv[0], argv);
         perror("execv");
         exit(1);
     }
