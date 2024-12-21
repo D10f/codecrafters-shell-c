@@ -140,7 +140,7 @@ int main()
 
 bool strstarts(const char *str, const char *prefix)
 {
-     return strncmp(str, prefix, strlen(prefix)) == 0;
+    return strncmp(str, prefix, strlen(prefix)) == 0;
 }
 
 int command_not_found_err(const char* cmd)
@@ -243,19 +243,19 @@ void parse_input(char *buffer, char *argv[])
             *curr_ptr = '\0';
 
             int new_buffer_size = (curr_ptr - prev_ptr) + 1;
-        argv[argc] = malloc(new_buffer_size);
-        strncpy(argv[argc], prev_ptr, new_buffer_size);
-        argc++;
+            argv[argc] = malloc(new_buffer_size);
+            strncpy(argv[argc], prev_ptr, new_buffer_size);
+            argc++;
 
-        prev_ptr = ++curr_ptr;
-        continue;
-    }
+            prev_ptr = ++curr_ptr;
+            continue;
+        }
 
-    if ( *curr_ptr == '\\' )
-    {
-        *curr_ptr = '\0';
+        if ( *curr_ptr == '\\' )
+        {
+            *curr_ptr = '\0';
 
-        int new_buffer_size = (curr_ptr - prev_ptr) + 1;
+            int new_buffer_size = (curr_ptr - prev_ptr) + 1;
             argv[argc] = malloc(256);
             strncpy(argv[argc], prev_ptr, new_buffer_size);
 
