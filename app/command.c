@@ -17,8 +17,11 @@ void run_builtin(char *argv[])
 {
     if ( strncmp(argv[0], "cd", strlen(argv[0])) == 0 )
     {
-        if ( ! argv[1] )
+        if ( ! argv[1] || strncmp(argv[1], "~", strlen(argv[1])) == 0 )
+        {
+            chdir(getenv("HOME"));
             return;
+        }
 
         if ( chdir(argv[1]) == -1 )
             printf("cd: %s: No such file or directory\n", argv[1]);
