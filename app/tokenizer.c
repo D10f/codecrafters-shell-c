@@ -92,7 +92,13 @@ void tokenize(Tokenizer *tokenizer)
 
     tokenizer->state = get_token_type(tokenizer->buffer[0]);
 
-    for ( int i = 0; i <= strlen(tokenizer->buffer); ++i )
+    int i = 0;
+
+    if (tokenizer->state == SINGLE_QUOTED ||
+        tokenizer->state == DOUBLE_QUOTED)
+        i++;
+
+    for ( ; i <= strlen(tokenizer->buffer); ++i )
     {
         current_char = tokenizer->buffer[i];
         current_char_type = get_token_type(current_char);

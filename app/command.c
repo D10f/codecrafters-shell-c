@@ -1,4 +1,6 @@
 #include "command.h"
+#include <stdlib.h>
+#include <string.h>
 
 static char *builtins[] = {
     "echo",
@@ -140,7 +142,6 @@ void run_command(char *argv[])
     {
         char cmd_path[256];
         sprintf(cmd_path, "%s/%s", filepath, argv[0]);
-        free(filepath);
         strncpy(argv[0], cmd_path, 256);
         exec_command(argv);
         return;
