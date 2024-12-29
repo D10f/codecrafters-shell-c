@@ -1,10 +1,12 @@
 #include "command.h"
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static char *builtins[] = {
     "echo",
     "exit",
+    "pwd",
     "type",
 };
 
@@ -31,6 +33,12 @@ void run_builtin(char *argv[])
         exit_code = argv[1] ? atoi(argv[1]) : 0;
         is_running = false;
         return;
+    }
+    else if ( strncmp(argv[0], "pwd", strlen(argv[0])) == 0 )
+    {
+        char cwd[1024];
+        getcwd(cwd, 1024);
+        printf("%s\n", cwd);
     }
     else if ( strncmp(argv[0], "type", strlen(argv[0])) == 0 )
     {
