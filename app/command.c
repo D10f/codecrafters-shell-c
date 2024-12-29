@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 static char *builtins[] = {
+    "cd",
     "echo",
     "exit",
     "pwd",
@@ -14,7 +15,15 @@ static int total_builtins = sizeof(builtins) / sizeof(char *);
 
 void run_builtin(char *argv[])
 {
-    if ( strncmp(argv[0], "echo", strlen(argv[0])) == 0 )
+    if ( strncmp(argv[0], "cd", strlen(argv[0])) == 0 )
+    {
+        if ( ! argv[1] )
+            return;
+
+        if ( chdir(argv[1]) == -1 )
+            printf("cd: %s: No such file or directory\n", argv[1]);
+    }
+    else if ( strncmp(argv[0], "echo", strlen(argv[0])) == 0 )
     {
         if ( ! argv[1] )
             printf("\n");
