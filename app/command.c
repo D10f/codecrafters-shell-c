@@ -133,19 +133,18 @@ char *find_command(char *cmd)
 void exec_command(char *argv[])
 {
     pid_t pid = fork();
+    int status;
+
+    if ( pid < 0 )
+        perror("Error forking child process.");
+
+    waitpid( pid, &status, 0 );
 
     if ( pid == 0 )
     {
         execv(argv[0], argv);
         perror("execv");
         exit(1);
-    }
-    else if ( pid < 0 )
-        perror("Error forking child process.");
-    else
-    {
-        int status;
-        waitpid( pid, &status, 0 );
     }
 }
 
